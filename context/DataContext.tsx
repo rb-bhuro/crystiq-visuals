@@ -1,182 +1,64 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Design, Category } from "../types";
-import { getInitialDesigns, getInitialCategories } from "../services/initialData";
-import { ADMIN_PASSWORD } from "../constants";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  where,
-  getDocs,
-  writeBatch,
-} from "firebase/firestore";
-import { firebaseConfig } from "../firebaseConfig";
+import { getFirestore, collection, getDocs, addDoc } from "firebase/firestore";
 
-// ✅ Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const categoriesCollection = collection(db, "categories");
-const designsCollection = collection(db, "designs");
-
-interface DataContextType {
-  designs: Design[];
-  categories: Category[];
-  isAuthenticated: boolean;
-  addDesign: (design: Omit<Design, "id">) => Promise<void>;
-  updateDesign: (design: Design) => Promise<void>;
-  deleteDesign: (id: string) => Promise<void>;
-  addCategory: (category: Omit<Category, "id">) => Promise<void>;
-  updateCategory: (category: Category) => Promise<void>;
-  deleteCategory: (id: string) => Promise<void>;
-  login: (password: string) => boolean;
-  logout: () => void;
-}
-
-const DataContext = createContext<DataContextType | undefined>(undefined);
-
-export const useData = () => {
-  const context = useContext(DataContext);
-  if (!context) throw new Error("useData must be used within a DataProvider");
-  return context;
+const firebaseConfig = {
+  apiKey: "AIzaSyCwllQBkW9mmSfFQf7dFL-EDVBHwbu_PXw",
+  authDomain: "crystiq-visuals.firebaseapp.com",
+  projectId: "crystiq-visuals",
+  storageBucket: "crystiq-visuals.firebasestorage.app",
+  messagingSenderId: "203405209535",
+  appId: "1:203405209535:web:ed3a632d007c1c7f18fb0a",
+  measurementId: "G-XYB5TQRBMQ"
 };
 
-export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [designs, setDesigns] = useState<Design[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+const DataContext = createContext<any>(null);
 
-  // ✅ Seed database with initial data if empty
-  const seedDatabase = async () => {
-    const categoriesSnapshot = await getDocs(categoriesCollection);
-    if (categoriesSnapshot.empty) {
-      console.log("🌱 Seeding Firestore with default data...");
-      const initialCategories = getInitialCategories();
-      const initialDesigns = getInitialDesigns();
-      const batch = writeBatch(db);
-
-      initialCategories.forEach((category) => {
-        const docRef = doc(categoriesCollection, category.id);
-        batch.set(docRef, category);
-      });
-
-      initialDesigns.forEach((design) => {
-        const docRef = doc(designsCollection, design.id);
-        batch.set(docRef, design);
-      });
-
-      await batch.commit();
-      console.log("✅ Database seeded successfully.");
-    }
-  };
+export const DataProvider = ({ children }: { children: React.ReactNode }) => {
+  const [updates, setUpdates] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-      console.warn("⚠️ Firebase not configured. Update firebaseConfig.ts.");
-      alert("Firebase not configured. Please update firebaseConfig.ts.");
-      return;
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      const loadUpdates = async () => {
+        const snapshot = await getDocs(collection(db, "updates"));
+        const data = snapshot.docs.map((doc) => doc.data());
+        console.log("✅ Loaded from Firestore:", data);
+        setUpdates(data);
+      };
+
+      loadUpdates();
+    } catch (err: any) {
+      console.error("🔥 Firebase init error:", err);
+      setError(err.message);
     }
-
-    seedDatabase();
-
-    // ✅ Real-time sync from Firestore
-    const unsubscribeCategories = onSnapshot(categoriesCollection, (snapshot) => {
-      const cats = snapshot.docs.map(
-        (doc) => ({ ...doc.data(), id: doc.id } as Category)
-      );
-      setCategories(cats);
-    });
-
-    const unsubscribeDesigns = onSnapshot(designsCollection, (snapshot) => {
-      const des = snapshot.docs.map(
-        (doc) => ({ ...doc.data(), id: doc.id } as Design)
-      );
-      setDesigns(des);
-    });
-
-    const storedAuth = sessionStorage.getItem("isAuthenticated");
-    setIsAuthenticated(storedAuth === "true");
-
-    return () => {
-      unsubscribeCategories();
-      unsubscribeDesigns();
-    };
   }, []);
 
-  // ✅ Authentication
-  const login = (password: string) => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem("isAuthenticated", "true");
-      return true;
+  const addUpdate = async (newData: any) => {
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      await addDoc(collection(db, "updates"), newData);
+      setUpdates((prev) => [...prev, newData]);
+    } catch (err) {
+      console.error("❌ Add update failed:", err);
     }
-    return false;
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem("isAuthenticated");
-  };
-
-  // ✅ CRUD for Designs
-  const addDesign = async (design: Omit<Design, "id">) => {
-    await addDoc(designsCollection, design);
-  };
-
-  const updateDesign = async (updatedDesign: Design) => {
-    const designDoc = doc(db, "designs", updatedDesign.id);
-    await updateDoc(designDoc, { ...updatedDesign });
-  };
-
-  const deleteDesign = async (id: string) => {
-    const designDoc = doc(db, "designs", id);
-    await deleteDoc(designDoc);
-  };
-
-  // ✅ CRUD for Categories
-  const addCategory = async (category: Omit<Category, "id">) => {
-    await addDoc(categoriesCollection, category);
-  };
-
-  const updateCategory = async (updatedCategory: Category) => {
-    const categoryDoc = doc(db, "categories", updatedCategory.id);
-    await updateDoc(categoryDoc, { ...updatedCategory });
-  };
-
-  const deleteCategory = async (id: string) => {
-    const batch = writeBatch(db);
-
-    // Delete the category itself
-    const categoryDoc = doc(db, "categories", id);
-    batch.delete(categoryDoc);
-
-    // Delete all designs belonging to that category
-    const designsQuery = query(designsCollection, where("categoryId", "==", id));
-    const designsSnapshot = await getDocs(designsQuery);
-    designsSnapshot.forEach((designDoc) => batch.delete(designDoc.ref));
-
-    await batch.commit();
-  };
-
-  const value = {
-    designs,
-    categories,
-    isAuthenticated,
-    addDesign,
-    updateDesign,
-    deleteDesign,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    login,
-    logout,
-  };
-
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return (
+    <DataContext.Provider value={{ updates, addUpdate, error }}>
+      {error ? (
+        <div style={{ color: "red", textAlign: "center", marginTop: "50px" }}>
+          Firebase Error: {error}
+        </div>
+      ) : (
+        children
+      )}
+    </DataContext.Provider>
+  );
 };
+
+export const useData = () => useContext(DataContext);
