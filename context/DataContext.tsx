@@ -29,6 +29,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("✅ Loaded from Firestore:", data);
         setUpdates(data);
       };
+      console.log("✅ DataContext mounted");
+
 
       loadUpdates();
     } catch (err: any) {
