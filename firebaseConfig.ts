@@ -1,5 +1,8 @@
-// IMPORTANT: Replace this with your own Firebase project configuration.
-// Go to your Firebase project settings, find your web app, and copy the config object.
+// firebaseConfig.ts
+
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCwllQBkW9mmSfFQf7dFL-EDVBHwbu_PXw",
   authDomain: "crystiq-visuals.firebaseapp.com",
@@ -9,3 +12,9 @@ const firebaseConfig = {
   appId: "1:203405209535:web:ed3a632d007c1c7f18fb0a",
   measurementId: "G-XYB5TQRBMQ"
 };
+
+// Initialize Firebase app
+const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore database
+export const db = getFirestore(app);
