@@ -81,31 +81,43 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
   useEffect(() => {
-    // Check if firebase config is placeholder
-    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-        console.warn("Firebase is not configured. Please update firebaseConfig.ts with your project credentials.");
-        alert("Firebase is not configured. The application will not connect to a database. Please update firebaseConfig.ts.");
-        return;
-    }
+    let unsubscribeCategories: () => void;
+    let unsubscribeDesigns: () => void;
 
-    seedDatabase();
+    const initializeAndListen = async () => {
+      try {
+        if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+            console.warn("Firebase is not configured. Please update firebaseConfig.ts with your project credentials.");
+            alert("Firebase is not configured. The application will not connect to a database. Please update firebaseConfig.ts.");
+            return;
+        }
 
-    const unsubscribeCategories = onSnapshot(categoriesCollection, (snapshot) => {
-      const cats = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
-      setCategories(cats);
-    });
+        await seedDatabase();
 
-    const unsubscribeDesigns = onSnapshot(designsCollection, (snapshot) => {
-      const des = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Design));
-      setDesigns(des);
-    });
+        unsubscribeCategories = onSnapshot(categoriesCollection, (snapshot) => {
+          const cats = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+          setCategories(cats);
+        });
+
+        unsubscribeDesigns = onSnapshot(designsCollection, (snapshot) => {
+          const des = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Design));
+          setDesigns(des);
+        });
+
+      } catch (error) {
+        console.error("Firebase connection error:", error);
+        alert("Failed to connect to the database. This can happen if:\n1. Your Firebase config values are incorrect in 'firebaseConfig.ts'.\n2. You haven't enabled Firestore in your Firebase project.\n3. Your Firestore security rules are blocking access.\n\nPlease check the console for more details.");
+      }
+    };
+
+    initializeAndListen();
 
     const storedAuth = sessionStorage.getItem('isAuthenticated');
     setIsAuthenticated(storedAuth === 'true');
 
     return () => {
-      unsubscribeCategories();
-      unsubscribeDesigns();
+      if (unsubscribeCategories) unsubscribeCategories();
+      if (unsubscribeDesigns) unsubscribeDesigns();
     };
   }, []);
   
