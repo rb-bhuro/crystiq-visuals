@@ -1,5 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+console.log("✅ main.tsx mounted");
+
 
 console.log("✅ React loaded!");
 
