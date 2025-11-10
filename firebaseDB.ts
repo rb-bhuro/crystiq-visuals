@@ -1,6 +1,9 @@
 // firebaseDB.ts
-import { db } from "./firebaseConfig";
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { initializeApp } from "https://aistudiocdn.com/firebase@12.5.0/app";
+import { 
+  getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch 
+} from "https://aistudiocdn.com/firebase@12.5.0/firestore";
+
 
 // --- DESIGN OPERATIONS ---
 export async function addDesignToDB(data: any) {
