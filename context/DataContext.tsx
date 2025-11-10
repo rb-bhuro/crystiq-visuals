@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, addDoc } from "firebase/firestore";
+import { initializeApp } from "https://aistudiocdn.com/firebase@12.5.0/app";
+import { 
+  getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch 
+} from "https://aistudiocdn.com/firebase@12.5.0/firestore";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyCwllQBkW9mmSfFQf7dFL-EDVBHwbu_PXw",
