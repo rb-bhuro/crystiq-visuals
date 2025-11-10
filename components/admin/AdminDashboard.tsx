@@ -1,3 +1,4 @@
+import { saveUpdate, getAllUpdates } from "./firebaseDB";
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
